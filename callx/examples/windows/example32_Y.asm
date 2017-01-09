@@ -1,12 +1,12 @@
-; MASM32: ╧ЁшьхЁ шёяюы№чютрэш  ьхїрэшчьр callx (яЁшьхЁ Ёхры№эюую ъюфр, трЁшрэЄ 1 - ё шёяюы№чютрэшхь ьшэшьрышёЄшўэюую examplez.inc)
+; MASM32: Пример использования механизма callx (пример реального кода, вариант 1 - с использованием минималистичного examplez.inc)
 
 .586p
 .model flat,stdcall
 option casemap:none
 
-include		callx.inc		; ьхїрэшчь шёъы■ўхэш  эхшёяюы№чєхь√ї яЁюЎхфєЁ шч ъюфр
-usecallx				; чряєёЄшЄ№ ьхїрэшчь
-modulex	example				; шь  уыртэюую ьюфєы 
+include		callx.inc		; механизм исключения неиспользуемых процедур из кода
+usecallx				; запустить механизм
+modulex	example				; имя главного модуля
 
 include		windows.inc
 include		kernel32.inc
@@ -37,9 +37,9 @@ Start:
 
 ;-----------------------------------------------------------------------------------------------------------------------
 
-pdefx		example, <WriteString>	; ¤Єр ёЄЁюър фюыцэр эрїюфшЄ№ё  ╧╬╤╦┼ тёхї т√чютют callx/invokex, эю ─╬ яЁюЎхфєЁ
+pdefx		example, <WriteString>	; эта строка должна находиться ПОСЛЕ всех вызовов callx/invokex, но ДО процедур
 
-; ┬√тюф ASCIIZ-ёЄЁюъш яю рфЁхёє EDI (ьхэ хЄ ЁхушёЄЁ√ EAX, ECX, EDX, EDI)
+; Вывод ASCIIZ-строки по адресу EDI (меняет регистры EAX, ECX, EDX, EDI)
 ifndef		?exclWriteString
 WriteString	proc
 		push	edi

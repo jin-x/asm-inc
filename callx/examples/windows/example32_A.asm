@@ -1,4 +1,4 @@
-; MASM32: ╧ЁшьхЁ шёяюы№чютрэш  ьхїрэшчьр callx (яЁшьхЁ Ёхры№эюую ъюфр, схч яЁшьхэхэш  ьхїрэшчьр шёъы■ўхэш  ъюфр)
+; MASM32: Пример использования механизма callx (пример реального кода, без применения механизма исключения кода)
 
 .586p
 .model flat,stdcall
@@ -31,7 +31,7 @@ Start:
 		call	WriteString
 		invoke  ExitProcess, NULL
 
-; ┬√тюф ASCIIZ-ёЄЁюъш яю рфЁхёє EDI (ьхэ хЄ ЁхушёЄЁ√ EAX, ECX, EDX, EDI)
+; Вывод ASCIIZ-строки по адресу EDI (меняет регистры EAX, ECX, EDX, EDI)
 WriteString	proc
 		push	edi
 		mov	ecx,65536

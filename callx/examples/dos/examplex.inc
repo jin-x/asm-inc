@@ -1,7 +1,7 @@
-include		callx.inc			; т ёыєўрх юЄёєЄёЄтш  фрээюую Їрщыр яЁюёЄю чръюььхэЄшЁєщЄх ¤Єє ёЄЁюъє
+include		callx.inc			; в случае отсутствия данного файла просто закомментируйте эту строку
 
-ifdef		?usecallx			; яЁютхЁър шёяюы№чютрэш  ьхїрэшчьр шёъы■ўхэш  эхшёяюы№чєхь√ї яЁюЎхфєЁ шч ъюфр
-  modulex	examplex			; шь  ьюфєы 
+ifdef		?usecallx			; проверка использования механизма исключения неиспользуемых процедур из кода
+  modulex	examplex			; имя модуля
   prelx		examplex, AddAbs, <AbsAX>
   pdefx		examplex, <AddAbs, AbsAX, UIntToScr, Mul10>
 else
@@ -12,7 +12,7 @@ ifdef		??Version			; TASM
   locals
 endif
 
-; ╧юыєўшЄ№ рсёюы■Єэюх чэрўхэшх ЁхушёЄЁр AX (эх ьхэ хЄ ЁхушёЄЁют)
+; Получить абсолютное значение регистра AX (не меняет регистров)
 ifndef		?exclAbsAX
 pchkx		AbsAX
 AbsAX		proc
@@ -25,7 +25,7 @@ AbsAX		proc
 AbsAX		endp
 endif ; ?exclAbsAX
 
-; ╤ыюцшЄ№ рсёюы■Єэ√х чэрўхэш  CX ёыют яю рфЁхёє SI, Ёхчєы№ЄрЄ яюьх∙рхЄё  т AX (ьхэ хЄ ЁхушёЄЁ DX)
+; Сложить абсолютные значения CX слов по адресу SI, результат помещается в AX (меняет регистр DX)
 ifndef		?exclAddAbs
 pchkx		AddAbs
 AddAbs		proc
@@ -41,7 +41,7 @@ AddAbs		proc
 AddAbs		endp
 endif ; ?exclAddAbs
 
-; ╙ьэюцшЄ№ ўшёыю AX эр 10 (ьхэ хЄ ЁхушёЄЁ DX)
+; Умножить число AX на 10 (меняет регистр DX)
 ifndef		?exclMul10
 pchkx		Mul10
 Mul10		proc
@@ -53,26 +53,26 @@ Mul10		proc
 Mul10		endp
 endif ; ?exclMul10
 
-; ┬√тхёЄш схччэръютюх ўшёыю AX эр ¤ъЁрэ (ьхэ хЄ ЁхушёЄЁ√ BX, CX, DX)
+; Вывести беззнаковое число AX на экран (меняет регистры BX, CX, DX)
 ifndef		?exclUIntToScr
 pchkx		UIntToScr
 UIntToScr	proc
 		xor	cx,cx
-		mov	bx,10			; ёшёЄхьр ёўшёыхэш 
+		mov	bx,10			; система счисления
 	@@NextDigit:
-		xor	dx,dx			; dx = 0 (эєцэю фы  фхыхэш )
-		div	bx			; ax = dx:ax/ёшёЄхьє_ёўшёыхэш , dx = юёЄрЄюъ
-		push	dx			; ёюїЁрэ хь ЎшЇЁє т ёЄхъх
-		inc	cx			; єтхышўштрхь ъюы-тю ЎшЇЁ
+		xor	dx,dx			; dx = 0 (нужно для деления)
+		div	bx			; ax = dx:ax/систему_счисления, dx = остаток
+		push	dx			; сохраняем цифру в стеке
+		inc	cx			; увеличиваем кол-во цифр
 		test	ax,ax
-		jnz	@@NextDigit		; яхЁхїюф, хёыш ўрёЄэюх х∙╕ эх Ёртэю 0
+		jnz	@@NextDigit		; переход, если частное ещё не равно 0
 
 		mov	ah,2
 	@@OutDigit:
-		pop	dx			; шчтыхърхь ЎшЇЁє шч ёЄхър
-		add	dl,'0'			; яЁхюсЁрчєхь х╕ т ёшьтюы
-		int	21h			; т√тюф ЎшЇЁ√
-		loop	@@OutDigit		; яютЄюЁ хь Ўшъы т√тюфр ёшьтюыют
+		pop	dx			; извлекаем цифру из стека
+		add	dl,'0'			; преобразуем её в символ
+		int	21h			; вывод цифры
+		loop	@@OutDigit		; повторяем цикл вывода символов
 		ret
 UIntToScr	endp
 endif ; ?exclUIntToScr

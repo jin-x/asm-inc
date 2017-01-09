@@ -1,16 +1,16 @@
-; ╧ЁшьхЁ шёяюы№чютрэш  ьхїрэшчьр callx (трЁшрэЄ 2 - ё яюьх∙хэшхь include-Їрщыр т эрўрыю ъюфр)
+; Пример использования механизма callx (вариант 2 - с помещением include-файла в начало кода)
 
 .model tiny
 .286
 
-include		callx.inc		; ьхїрэшчь шёъы■ўхэш  эхшёяюы№чєхь√ї яЁюЎхфєЁ шч ъюфр
-usecallx				; чряєёЄшЄ№ ьхїрэшчь
+include		callx.inc		; механизм исключения неиспользуемых процедур из кода
+usecallx				; запустить механизм
 
-; ┬рЁшрэЄ шёяюы№чютрэш  ьхЄюфшъш шёъы■ўхэш  яЁюЎхфєЁ√ (тючьюцэ√х чэрўхэш : 1 шыш 2)
+; Вариант использования методики исключения процедуры (возможные значения: 1 или 2)
 Variant		=	2
 
 if		Variant eq 1
-  inclx		AddAbs, UIntToScr	; ёяшёюъ тъы■ўрхь√ї т ъюф яЁюЎхфєЁ (тёяюьюурЄхы№э√х яЁюЎхфєЁ√ [AbsAX] ьюцэю эх єърч√трЄ№, Є.ъ. т include-Їрщых яЁюяшёрэр чртшёшьюёЄ№ AddAbs юЄ AbsAX)
+  inclx		AddAbs, UIntToScr	; список включаемых в код процедур (вспомогательные процедуры [AbsAX] можно не указывать, т.к. в include-файле прописана зависимость AddAbs от AbsAX)
 else
   inclx_All	examplex
   exclx		Mul10
@@ -27,7 +27,7 @@ include		examplex.inc
 	ifdef	AddAbs
 		mov	si,offset Nums
 		mov	cx,cNums
-		callx	AddAbs		; т фрээюь ёыєўрх (чфхё№ ш эшцх) ьюцэю шёяюы№чютрЄ№ call (р эх callx)
+		callx	AddAbs		; в данном случае (здесь и ниже) можно использовать call (а не callx)
 	else
 		mov	ax,10
 	endif
@@ -44,7 +44,7 @@ include		examplex.inc
 	endif
 		int	20h
 
-.data					; эх яхЁхьх∙рщЄх ¤Єє ёхъЎш■ т√°х ёхъЎшш .code, шэрўх яюыєўшЄх ёююс∙хэшх 'Module is pass dependent' яЁш ъюьяшы Ўшш TASM'юь (шч-чр ifdef UIntToScr)
+.data					; не перемещайте эту секцию выше секции .code, иначе получите сообщение 'Module is pass dependent' при компиляции TASM'ом (из-за ifdef UIntToScr)
 
 ifdef	UIntToScr
   mPressKey	db	13,10,'Press a key...',13,10,'$'

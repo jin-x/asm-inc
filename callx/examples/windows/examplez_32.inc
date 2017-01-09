@@ -1,6 +1,6 @@
-include		callx.inc			; т ёыєўрх юЄёєЄёЄтш  фрээюую Їрщыр яЁюёЄю чръюььхэЄшЁєщЄх ¤Єє ёЄЁюъє
+include		callx.inc			; в случае отсутствия данного файла просто закомментируйте эту строку
 
-ifdef		?usecallx			; яЁютхЁър шёяюы№чютрэш  ьхїрэшчьр шёъы■ўхэш  эхшёяюы№чєхь√ї яЁюЎхфєЁ шч ъюфр
+ifdef		?usecallx			; проверка использования механизма исключения неиспользуемых процедур из кода
   prelx,	AddAbs, <AbsAX>
   pdefx,	<AddAbs, AbsAX, UIntToStr, Mul10>
 endif
@@ -9,7 +9,7 @@ ifdef		??Version			; TASM
   locals
 endif
 
-; ╧юыєўшЄ№ рсёюы■Єэюх чэрўхэшх ЁхушёЄЁр EAX (эх ьхэ хЄ ЁхушёЄЁют)
+; Получить абсолютное значение регистра EAX (не меняет регистров)
 ifndef		?exclAbsAX
 AbsAX		proc
 		push	edx
@@ -21,7 +21,7 @@ AbsAX		proc
 AbsAX		endp
 endif ; ?exclAbsAX
 
-; ╤ыюцшЄ№ рсёюы■Єэ√х чэрўхэш  ECX фтющэ√ї ёыют яю рфЁхёє ESI, Ёхчєы№ЄрЄ яюьх∙рхЄё  т EAX (ьхэ хЄ ЁхушёЄЁ EDX)
+; Сложить абсолютные значения ECX двойных слов по адресу ESI, результат помещается в EAX (меняет регистр EDX)
 ifndef		?exclAddAbs
 AddAbs		proc
 		cld
@@ -36,7 +36,7 @@ AddAbs		proc
 AddAbs		endp
 endif ; ?exclAddAbs
 
-; ╙ьэюцшЄ№ ўшёыю EAX эр 10 (ьхэ хЄ ЁхушёЄЁ EDX)
+; Умножить число EAX на 10 (меняет регистр EDX)
 ifndef		?exclMul10
 Mul10		proc
 		mov	edx,eax
@@ -47,26 +47,26 @@ Mul10		proc
 Mul10		endp
 endif ; ?exclMul10
 
-; ╧ЁхюсЁрчютрЄ№ ўшёыю EAX т ASCIIZ-ёЄЁюъє яю рфЁхёє EDI (ьхэ хЄ ЁхушёЄЁ√ EBX, ECX, EDX)
+; Преобразовать число EAX в ASCIIZ-строку по адресу EDI (меняет регистры EBX, ECX, EDX)
 ifndef		?exclUIntToStr
 UIntToStr	proc
 		xor	ecx,ecx
-		mov	ebx,10			; ёшёЄхьр ёўшёыхэш 
+		mov	ebx,10			; система счисления
 	@@NextDigit:
-		xor	edx,edx			; dx = 0 (эєцэю фы  фхыхэш )
-		div	ebx			; ax = dx:ax/ёшёЄхьє_ёўшёыхэш , dx = юёЄрЄюъ
-		push	edx			; ёюїЁрэ хь ЎшЇЁє т ёЄхъх
-		inc	ecx			; єтхышўштрхь ъюы-тю ЎшЇЁ
+		xor	edx,edx			; dx = 0 (нужно для деления)
+		div	ebx			; ax = dx:ax/систему_счисления, dx = остаток
+		push	edx			; сохраняем цифру в стеке
+		inc	ecx			; увеличиваем кол-во цифр
 		test	eax,eax
-		jnz	@@NextDigit		; яхЁхїюф, хёыш ўрёЄэюх х∙╕ эх Ёртэю 0
+		jnz	@@NextDigit		; переход, если частное ещё не равно 0
 
 	@@OutDigit:
-		pop	eax			; шчтыхърхь ЎшЇЁє шч ёЄхър
-		add	al,'0'			; яЁхюсЁрчєхь х╕ т ёшьтюы
-		stosb				; чряшё√трхь ёшьтюы (ЎшЇЁє)
-		loop	@@OutDigit		; яютЄюЁ хь Ўшъы чряшёш ёшьтюыют
+		pop	eax			; извлекаем цифру из стека
+		add	al,'0'			; преобразуем её в символ
+		stosb				; записываем символ (цифру)
+		loop	@@OutDigit		; повторяем цикл записи символов
 		xor	al,al
-		stosb				; чряшё√трхь ёшьтюы ъюэЎр ёЄЁюъш
+		stosb				; записываем символ конца строки
 		ret
 UIntToStr	endp
 endif ; ?exclUIntToStr
