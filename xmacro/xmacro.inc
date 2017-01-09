@@ -1,0 +1,643 @@
+;############################################
+;##                                        ##
+;##   -= EXTRA MACROSES (FULL EDITION) =-  ##
+;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
+;##             Полный вариант             ##
+;##         [ v1.00 :: 09.01.2017 ]        ##
+;##                                        ##
+;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
+;##           http://xk7.ru/p/a/i          ##
+;##                                        ##
+;############################################
+
+xmacro_ver	=	100h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+@		equ	<offset>
+$b		equ	<byte ptr>
+$w		equ	<word ptr>
+$d		equ	<dword ptr>
+$f		equ	<fword ptr>
+$q		equ	<qword ptr>
+$t		equ	<tbyte ptr>
+$s		equ	<short>
+$n		equ	<near>
+$f		equ	<far>
+
+; Выполнение инструкций/директив/макросов, заданных одной строкой
+_		macro	p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
+	irp	x, <<p1>, <p2>, <p3>, <p4>, <p5>, <p6>, <p7>, <p8>, <p9>, <p10>>
+		x
+	endm
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+;-- УСЛОВНЫЕ МАКРОСЫ ---------------------------------------------------------------------------------------------------
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Если cond, исполнить do1; иначе do0
+ifel		macro	cond:req, do1, do0
+	ifelx	< cond>, <do1>, <do0>
+endm
+ifdo		equ	<ifel>
+
+ifn		equ	<ife>
+
+; Если НЕ cond, исполнить do1; иначе do0
+ifnel		macro	cond:req, do1, do0
+	ifelx	<e cond>, <do1>, <do0>
+endm
+ifeel		equ	<ifnel>
+
+; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
+ifelif		macro	cond1:req, do1, cond2:req, do2, do0
+	ifelifx	< cond1>, <do1>, < cond2>, <do2>, <do0>
+endm
+
+; ifdef id (если идентификатор определён), исполнить do1; иначе do0
+ifdefel		macro	id:req, do1, do0
+	ifelx	<def id>, <do1>, <do0>
+endm
+
+; ifndef id (если идентификатор НЕ определён), исполнить do1; иначе do0
+ifndefel	macro	id:req, do1, do0
+	ifelx	<ndef id>, <do1>, <do0>
+endm
+
+; ifb exp (если выражение пустое), исполнить do1; иначе do0
+ifbel		macro	exp, do1, do0
+	ifelx	<b <exp>>, <do1>, <do0>
+endm
+
+; Если выражение exp пустое или состоит из пробелов, исполнить do1; иначе do0
+ifbbel		macro	exp, do1, do0
+	local	temp
+	ifb	<exp>
+		do1
+	else
+	  temp	= true
+	  irpc	x, <exp>
+	    ifdif <x>, < >
+	      ifdif <x>, <	>
+		temp = false
+		exitm
+	      endif
+	    endif
+	  endm
+	  ifel	temp, <do1>, <do0>
+	endif
+endm
+
+; ifnb exp (если выражение НЕпустое), исполнить do1; иначе do0
+ifnbel		macro	exp, do1, do0
+	ifelx	<nb <exp>>, <do1>, <do0>
+endm
+
+; Если выражение exp НЕпустое и НЕ состоит из пробелов, исполнить do1; иначе do0
+ifnbbel		macro	exp, do1, do0
+	ifbbel	<exp>, <do0>, <do1>
+endm
+
+; ifidn exp1, exp2 (если значения совпадают С учётом регистра символов), исполнить do1; иначе do0
+ifidnel		macro	exp1:req, exp2:req, do1, do0
+	ifelx	<idn <exp1>, <exp2>>, <do1>, <do0>
+endm
+
+; ifidni cond (если значения совпадают БЕЗ учёта регистра символов), исполнить do1; иначе do0
+ifidniel	macro	exp1:req, exp2:req, do1, do0
+	ifelx	<idni <exp1>, <exp2>>, <do1>, <do0>
+endm
+
+; ifidn exp1, exp2 (если значения различаются С учётом регистра символов), исполнить do1; иначе do0
+ifdifel		macro	exp1:req, exp2:req, do1, do0
+	ifelx	<dif <exp1>, <exp2>>, <do1>, <do0>
+endm
+
+; ifidni cond (если значения различаются БЕЗ учёта регистра символов), исполнить do1; иначе do0
+ifdifiel	macro	exp1:req, exp2:req, do1, do0
+	ifelx	<difi <exp1>, <exp2>>, <do1>, <do0>
+endm
+
+; Если cond1 или cond2 (условие cond2 проверяется только в том случае, если cond1 не выполнилось), исполнить do1; иначе do0
+iforel		macro	cond1:req, cond2:req, do1, do0
+	ifelifx	< cond1>, <do1>, < cond2>, <do1>, <do0>
+endm
+
+; Если cond1 и cond2 (условие cond2 проверяется только в том случае, если cond1 выполнилось), исполнить do1; иначе do0
+ifandel		macro	cond1:req, cond2:req, do1, do0
+	ifandelx < cond1>, < cond2>, <do1>, <do0>
+endm
+
+; Аналогично ifel, но условие подставляется слитно с if, например: ifelx <def debug>, <int 3>, nop
+ifelx		macro	cond:req, do1, do0
+	if&cond
+		do1
+	else
+		do0
+	endif
+endm
+ifx		equ	<ifelx>
+
+; Аналогично ifnel, но условие подставляется слитно с if, например: ifnelx <def debug>, nop, <int 3>
+ifnelx		macro	cond:req, do1, do0
+	ifelx	<cond>, <do0>, <do1>
+endm
+ifeelx		equ	<ifnelx>
+
+; Аналогично ifelif, но условия подставляются слитно с if, например: ifelifx <def debug>, <int 3>, <idn <spec>, <stosb>>, stosb, nop
+ifelifx		macro	cond1:req, do1, cond2:req, do2, do0
+	if&cond1
+		do1
+	elseif&cond2
+		do2
+	else
+		do0
+	endif
+endm
+
+; Аналогично iforel, но условия подставляются слитно с if
+iforelx		macro	cond1:req, cond2:req, do1, do0
+	ifelifx	<cond1>, <do1>, <cond2>, <do1>, <do0>
+endm
+
+; Аналогично ifandel, но условия подставляются слитно с if
+ifandelx	macro	cond1:req, cond2:req, do1, do0
+	if&cond1
+	  if&cond2
+		do1
+	  else
+		do0
+	  endif
+	else
+		do0
+	endif
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Установить значение var = true, если выполняется хотя бы одно из условий cX; иначе установить var = false
+setifor		macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
+	setiforx <var>, < c1>, < c2>, < c3>, < c4>, < c5>, < c6>, < c7>, < c8>
+endm
+
+; Установить значение var = true, если выполняются все условия cX; иначе установить var = false
+setifand	macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
+	setifandx <var>, < c1>, < c2>, < c3>, < c4>, < c5>, < c6>, < c7>, < c8>
+endm
+
+; Установить значение var1 = true, а var2 = false, если выполняется условие cond (которые подставляются слитно с if); иначе установить var1 = false, а var2 = true
+setifelx	macro	cond:req, var1, var2
+	if&cond
+	  ifnbel <var1>, <var1 = true>
+	  ifnbel <var2>, <var2 = false>
+	else
+	  ifnbel <var1>, <var1 = false>
+	  ifnbel <var2>, <var2 = true>
+	endif
+endm
+
+; Установить значение var = true, если выполняется хотя бы одно из условий cX (которые подставляются слитно с if); иначе установить var = false
+setiforx	macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
+	local	temp
+	temp	=	false
+	irp	x, <<c1>, <c2>, <c3>, <c4>, <c5>, <c6>, <c7>, <c8>>
+	  ifnbbel <x>, <ifdo <x>, <temp = true>>
+	  if	temp
+	    exitm
+	  endif
+	endm
+	var	=	temp
+endm
+
+; Установить значение var = true, если выполняются все условия cX (которые подставляются слитно с if); иначе установить var = false
+setifandx	macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
+	local	temp1, temp2
+	temp1	=	0
+	temp2	=	0
+	irp	x, <<c1>, <c2>, <c3>, <c4>, <c5>, <c6>, <c7>, <c8>>
+	  ifnbbel <x>, <_ <temp1 = temp1 + 1>, <ifx <x>, <temp2 = temp2 + 1>>>
+	endm
+	var	=	temp1 eq temp2
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Если идентификатор value определён, установить значение const = value, иначе установить значение _const = defval
+defdef		macro	const:req, value:req, defval:req
+  ifdef		value
+	const	=	value
+  else
+	const	=	defval
+  endif
+endm
+
+; Если константа const определена, установить значение _const = const, иначе установить значение _const = defval
+_defdef		macro	const:req, defval:req
+	defdef	<_&const>, <const>, <defval>
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Вывод сообщения txt об ошибке (одинаковый синтаксис для MASM и TASM)
+?err		macro	txt
+  ifel	isTASM, <.err "&txt">, <.err <&txt>>
+endm
+
+; Вывод сообщения txt об ошибке при выполнении условия cond
+?errif		macro	cond:req, txt
+  ifx	< cond>, <?err <txt>>
+endm
+
+; Аналогично ?errif, но условие подставляется слитно с if, например: ?errifx <ndef ok>, <Error message>
+?errifx		macro	cond:req, txt
+  ifx	<cond>, <?err <txt>>
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Следующие идентификаторы определены для более удобного использования вложенных условных директив компиляции, например:
+; if abc
+;  ?if def
+;    ??if ghi
+;     ...
+;    ??endif
+;  ?endif
+; endif
+?if		equ	<if>
+?ifdef		equ	<ifdef>
+?ifndef		equ	<ifndef>
+?ifb		equ	<ifb>
+?ifnb		equ	<ifnb>
+?ifidn		equ	<ifidn>
+?ifidni		equ	<ifidni>
+?ifdif		equ	<ifdif>
+?ifdifi		equ	<ifdifi>
+?if1		equ	<if1>
+?if2		equ	<if2>
+?else		equ	<else>
+?elseif		equ	<elseif>
+?elseifdef	equ	<elseifdef>
+?elseifndef	equ	<elseifndef>
+?elseifb	equ	<elseifb>
+?elseifnb	equ	<elseifnb>
+?elseifidn	equ	<elseifidn>
+?elseifidni	equ	<elseifidni>
+?elseifdif	equ	<elseifdif>
+?elseifdifi	equ	<elseifdifi>
+?elseif1	equ	<elseif1>
+?elseif2	equ	<elseif2>
+?endif		equ	<endif>
+
+??if		equ	<if>
+??ifdef		equ	<ifdef>
+??ifndef	equ	<ifndef>
+??ifb		equ	<ifb>
+??ifnb		equ	<ifnb>
+??ifidn		equ	<ifidn>
+??ifidni	equ	<ifidni>
+??ifdif		equ	<ifdif>
+??ifdifi	equ	<ifdifi>
+??if1		equ	<if1>
+??if2		equ	<if2>
+??else		equ	<else>
+??elseif	equ	<elseif>
+??elseifdef	equ	<elseifdef>
+??elseifndef	equ	<elseifndef>
+??elseifb	equ	<elseifb>
+??elseifnb	equ	<elseifnb>
+??elseifidn	equ	<elseifidn>
+??elseifidni	equ	<elseifidni>
+??elseifdif	equ	<elseifdif>
+??elseifdifi	equ	<elseifdifi>
+??elseif1	equ	<elseif1>
+??elseif2	equ	<elseif2>
+??endif		equ	<endif>
+
+;=======================================================================================================================
+
+;-----------------------------------------------------------------------------------------------------------------------
+;-- ОПРЕДЕЛЕНИЕ ЗНАЧЕНИЙ КОНСТАНТ --------------------------------------------------------------------------------------
+;-----------------------------------------------------------------------------------------------------------------------
+
+false		=	0
+true		=	not false
+
+; Установка isTASM = true и isMASM = false, если текущий компилятор - TASM, иначе наоборот
+setifelx	<def ??Version>, isTASM, isMASM
+
+; Установка идентификатора @32Bit (32-битный режим) в MASM
+ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
+
+; Разрешены ли инструкции/регистры процессоров (в TASM @Cpu = 0 в режиме .586)
+@186		=	(@Cpu and 2) or (@Cpu eq 0)
+@286		=	(@Cpu and 3) or (@Cpu eq 0)
+@386		=	(@Cpu and 8) or (@Cpu eq 0)
+@486		=	(@Cpu and 10h) or (@Cpu eq 0)
+@586		=	(@Cpu and 20h) or (@Cpu eq 0)
+@686		=	@Cpu and 40h
+
+; Включить режим оптимизации и использования локальных меток, начинающихся на @@
+ifdo		isTASM,	<_ smart, locals>
+
+; Проверка требуемой версии данного include-файла, заданной через константу xmacro_ver_req или xmac_ver_req
+ifx		<def xmacro_ver_req>, <?errif <xmacro_ver_req gt xmacro_ver>, <Version of 'xmacro.inc' is less than required :(>>
+ifx		<def xmac_ver_req>, <?errif <xmac_ver_req gt xmacro_ver>, <Version of 'xmacro.inc' is less than required :(>>
+
+;=======================================================================================================================
+
+;-----------------------------------------------------------------------------------------------------------------------
+;-- МАКРОСЫ, ОПИСЫВАЮЩИЕ ИЛИ УПРОЩАЮЩИЕ ИСПОЛЬЗОВАНИЕ ИНСТРУКЦИЙ ПРОЦЕССОРА --------------------------------------------
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Недокументированная инструкция salc (setalc)
+salc		macro
+		db	0D6h
+endm
+setalc		equ	<salc>
+
+; Инструкция rdtsc
+if		isTASM
+  rdtsc		macro
+		db	0Fh,31h
+  endm
+endif
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Прыжок через 1 байт; если указан 1-байтовый регистр reg, его значение изменяется, но сохраняются флаги, иначе изменяются флаги, но сохраняются регистры
+jmp_1		macro	reg
+	local	x
+	x	=	$
+	ifnbel	reg, <mov reg,0>, <test al,0>
+		org	$-1
+	?errif <$-x ne 1>, <Wrong register '&reg' for this macro>
+endm
+
+; Прыжок через 2 байта; если указан 2-байтовый регистр reg, его значение изменяется, но сохраняются флаги, иначе изменяются флаги, но сохраняются регистры
+jmp_2		macro	reg
+	local	x
+	x	=	$
+	ifnbel	reg, <mov reg,0>, <test ax,0>
+		org	$-2
+	ife	@32Bit
+	  ?errif <$-x ne 1>, <Wrong register '&reg' for this macro>
+	else
+	  ?errif <$-x ne 2>, <Wrong register '&reg' for this macro>
+	endif
+endm
+
+; Прыжок через 4 байта; если указан 4-байтовый регистр reg, его значение изменяется, но сохраняются флаги, иначе изменяются флаги, но сохраняются регистры
+jmp_4		macro	reg
+	local	x
+	x	=	$
+	ifnbel	<reg>, <mov reg,0>, <test eax,0>
+		org	$-4
+	if	@32Bit
+	  ?errif <$-x ne 1>, <Wrong register '&reg' for this macro>
+	else
+	  ?errif <$-x ne 2>, <Wrong register '&reg' for this macro>
+	endif
+endm
+
+jmps		equ	<jmp short>
+jmpn		equ	<jmp near>
+
+; jmp far seg:ofs (если seg:ofs не указан, генерируется только 1 байт опкода)
+jmpf		macro	seg, ofs
+		db	0EAh
+	ifnbel	<seg>, <dw ofs, seg>
+endm
+
+; call far seg:ofs (если seg:ofs не указан, генерируется только 1 байт опкода)
+callf		macro	seg, ofs
+		db	09Ah
+	ifnbel	<seg>, <dw ofs, seg>
+endm
+
+; call int (pushf + callf)
+calli		macro	seg, ofs
+		pushf
+		callf	seg, ofs
+endm
+
+; Определяет nop'ы в количестве cnt штук 
+nops		macro	cnt:req
+	rept	cnt
+		nop
+	endm
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Выполнение присвоения значения регистру с помощью mov или xor (если src = 0)
+; Чтобы передать в параметре src константу, необходимо поставить перед ней % (movx ax,%val), иначе xor не выполнится
+movx		macro	dst:req, src:req
+	ifidnel	<src>, <0>, <xor dst,dst>, <mov dst,src>
+endm
+
+; Выполнение сравнение регистра с помощью cmp или test (если src = 0)
+; Чтобы передать в параметре src константу, необходимо поставить перед ней % (cmpx ax,%val), иначе test не выполнится
+cmpx		macro	dst:req, src:req
+	ifidnel	<src>, <0>, <test dst,dst>, <cmp dst,src>
+endm
+
+; Выполнение присвоения op = val через стек
+movp		macro	op:req, val:req
+		push	val
+		pop	op
+endm
+
+; Выполнение присвоения op = val через временный регистр temp (по умолчанию ax; например, movt ds,@data или movt es,0A000h,dx)
+movt		macro	op:req, val:req, temp:=<ax>
+		mov	temp,val
+		pop	op2
+endm
+
+; Обмен значениями op1 и op2 через стек
+; Макрос не проверяет соответствие разрядности операндов !!!
+xchgp		macro	op1:req, op2:req
+		push	op1
+		push	op2
+		pop	op1
+		pop	op2
+endm
+
+; Сохранение регистров в одну строку: push ax bx cx dx
+pushx		macro	regs:vararg
+	irp	r, <regs>
+		push	r
+	endm
+endm
+
+; Восстановление регистров в одну строку: pop dx cx bx ax
+popx		macro	regs:vararg
+	irp	r, <regs>
+		pop	r
+	endm
+endm
+
+; Восстановление регистров в обратном порядке: popb ax bx cx dx
+popb		macro	regs:vararg
+	local	n, i
+	n = 0
+	irp	r, <regs>
+	  n = n + 1
+	endm
+	while	n gt 0
+	  i = 0
+	  irp	r, <regs>
+	    i = i + 1
+	    if	i eq n
+		pop	r
+	    endif
+	  endm
+	  n = n - 1
+	endm
+endm
+
+; Запись ip (адрес следующей строки) в op, используя стек
+; Макрос не проверяет соответствие разрядности кода и операнда !!!
+getip		macro	op:req
+	local	x
+		call	x
+	x:	pop	reg
+endm
+
+; Запись флагов в op, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+getf		macro	op:req
+		pushf
+		pop	op
+endm
+
+; Запись слова флагов в op, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+getfw		macro	op:req
+		pushfw
+		pop	$w op
+endm
+
+; Запись двойного слова флагов в op, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+getfd		macro	op:req
+		pushfd
+		pop	$d op
+endm
+
+; Запись op в регистр флагов, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+setf		macro	op:req
+		push	op
+		popf
+endm
+
+; Запись слова op в регистр флагов, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+setfw		macro	op:req
+		push	$w op
+		popfw
+endm
+
+; Запись двойного слова op в регистр флагов, используя стек
+; Макрос не проверяет соответствие разрядности флагов и операнда !!!
+setfd		macro	op:req
+		push	$d op
+		popfd
+endm
+
+; Установка флага ZF=ZR=1 (влияет и на другие флаги: CF=0, PF=1, AF=0, SF=0, OF=0)
+stz		macro
+		cmp	al,al
+endm
+
+; Получить абсолютное (положительное) значение op (минимальное отрицательное значение остаётся неизменным, при этом SF=1, OF=1, иначе SF=0, SF=0)
+absx		macro	op:req
+	local	x
+	x:	neg	op
+		jl	x
+endm
+
+; Получить абсолютное (положительное) значение регистра al (значение -128 остаётся неизменным, при этом SF=1, OF=1, иначе SF=0, SF=0)
+; Работает быстрее, чем absx; при этом: ah = 0 и CF=0, если исходное значение al положительное, иначе ah = -1, CF=1
+absal		macro
+		cbw
+		xor	al,ah
+		sub	al,ah
+endm
+
+; Получить абсолютное (положительное) значение регистра ax (значение -32768 остаётся неизменным, при этом SF=1, OF=1, иначе SF=0, SF=0)
+; Работает быстрее, чем absx; при этом: dx = 0 и CF=0, если исходное значение ax положительное, иначе dx = -1, CF=1
+absax		macro
+		cwd
+		xor	ax,dx
+		sub	ax,dx
+endm
+
+; Получить абсолютное (положительное) значение регистра ax (значение -2147483648 остаётся неизменным, при этом SF=1, OF=1, иначе SF=0, SF=0)
+; Работает быстрее, чем absx; при этом: edx = 0 и CF=0, если исходное значение eax положительное, иначе edx = -1, CF=1
+abseax		macro
+		cdq
+		xor	eax,edx
+		sub	eax,edx
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Данный макрос определяет множество других макросов, которые выполняют lodsb/lodsw/lodsd с использованием сегментов, отличных от ds
+; lodsb_seg, lodsw_seg, lodsd_seg с названием сегментного регистра в качестве аргумента (например, lodsb_seg es)
+; lodsb_es, lodsb_cs, lodsb_ss, lodsb_fs, lodsb_gs,
+; lodsw_es, lodsw_cs, lodsw_ss, lodsw_fs, lodsw_gs,
+; lodsd_es, lodsd_cs, lodsd_ss, lodsd_fs, lodsd_gs без аргументов
+irp		x, <byte, word, dword>
+  local	t, m1, m2
+  t	substr	<x>,1,1
+  m1	catstr	<lods>,t,<_seg>
+  m1	macro	seg:req
+	lods x ptr seg:[si]
+  endm
+  irp		s, <es, cs, ss, fs, gs>
+    m2	catstr	<lods>,t,<_>,<s>
+    m2	macro
+	lods x ptr s:[si]
+    endm
+  endm
+endm
+
+; Данный макрос определяет множество других макросов, которые выполняют outsb/outsw/outsd с использованием сегментов, отличных от ds
+; outsb_seg, outsw_seg, outsd_seg с названием сегментного регистра в качестве аргумента (например, outsb_seg es)
+; outsb_es, outsb_cs, outsb_ss, outsb_fs, outsb_gs,
+; outsw_es, outsw_cs, outsw_ss, outsw_fs, outsw_gs,
+; outsd_es, outsd_cs, outsd_ss, outsd_fs, outsd_gs без аргументов
+irp		x, <byte, word, dword>
+  local	t, m1, m2
+  t	substr	<x>,1,1
+  m1	catstr	<outs>,t,<_seg>
+  m1	macro	seg:req
+	outs x ptr seg:[si]
+  endm
+  irp		s, <es, cs, ss, fs, gs>
+    m2	catstr	<outs>,t,<_>,<s>
+    m2	macro
+	outs x ptr s:[si]
+    endm
+  endm
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Вызов прерывания no с установкой регистров reg1 = val1, reg2 = val2...
+; Если указан только reg1 без val1, то значение reg1 заносится в ah (или ax, если число > 0FFh)
+; Например: intfn 16h,0 или intfn 15h,ah,86h,cx,0,dx,10000
+intfn		macro	no:req, reg1:req, val1, reg2, val2, reg3, val3, reg4, val4, reg5, val5
+	ifnb	<val1>
+		movx	reg1,val1
+	else
+	  ifel	<reg1 lt 100h>, <movx ah,reg1>, <movx ax,reg1>
+	endif
+	ifnbel	<reg2>, <movx reg2,val2>
+	ifnbel	<reg3>, <movx reg3,val3>
+	ifnbel	<reg4>, <movx reg4,val4>
+	ifnbel	<reg5>, <movx reg5,val5>
+		int	no
+endm
