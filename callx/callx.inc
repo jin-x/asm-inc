@@ -152,9 +152,9 @@ callx_ver	=	101h		; версия данного файла (word: старший байт - целая часть, млад
 ifdef	callx_ver_req
   if	callx_ver_req gt callx_ver
     ifdef ??Version		; TASM
-	.err	"Version of 'callx.inc' is less that required :( !!!"
+	.err	"Version of 'callx.inc' is less than required :( !!!"
     else			; MASM
-	.err	<Version of 'callx.inc' is less that required :( !!!!!!>
+	.err	<Version of 'callx.inc' is less than required :( !!!!!!>
     endif
     callx_ver_req =	0		; для исключения повторного вывода сообщения
   endif
