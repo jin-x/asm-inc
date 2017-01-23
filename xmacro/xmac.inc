@@ -2,16 +2,32 @@
 ;##                                        ##
 ;##   -= EXTRA MACROSES (MINI EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
-;##           Сокращённый вариант          ##
-;##         [ v1.00 :: 09.01.2017 ]        ##
+;##          Сокращённая редакция          ##
+;##         [ v1.01 :: 22.01.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
 ;##                                        ##
 ;############################################
 
-xmac_ver	=	100h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
+xmac_ver	=	101h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
 
+;------------------------------------------------------------------------------------------------------------------------
+;
+; -= ИСТОРИЯ ВЕРСИЙ =-
+;
+; v1.01 (22.01.2017)
+; [+] Добавлены идентификаторы xax, xbx, xcx, xdx, xsi, xdi, xbp, xsp, @word, jxcxz.
+; [+] Добавлены макросы iforel, ifandel, iforelx, ifandelx (из полной редакции).
+; [+] Добавлен псевдоним ifndo.
+; [*] В макросы defdef и _defdef добавлен дополнительный параметр, позволяющий делать проверку ещё одной константы.
+; [*] В макросы ?err, ?errif, ?errifx добавлен дополнительный параметр, позволяющий добавлять к сообщению 3 восклицательных знака.
+; [-] Из данной редакции удалены макросы movt, movp, xchgp, calli, outsXXX, intfn.
+; [-] Из данной редакции удалена проверка xmacro_ver_req (поскольку это могло явиться причиной сообщения об ошибке при включении обеих редакций).
+;
+; v1.00 (09.01.2017)
+; [!] Самая первая версия.
+;
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Выполнение инструкций/директив/макросов, заданных одной строкой
@@ -37,11 +53,23 @@ ifn		equ	<ife>
 ifnel		macro	cond:req, do1, do0
 	ifelx	<e cond>, <do1>, <do0>
 endm
+ifndo		equ	<ifnel>
+
 ifeel		equ	<ifnel>
 
 ; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
 ifelif		macro	cond1:req, do1, cond2:req, do2, do0
 	ifelifx	< cond1>, <do1>, < cond2>, <do2>, <do0>
+endm
+
+; Если cond1 или cond2 (условие cond2 проверяется только в том случае, если cond1 не выполнилось), исполнить do1; иначе do0
+iforel		macro	cond1:req, cond2:req, do1, do0
+	ifelifx	< cond1>, <do1>, < cond2>, <do1>, <do0>
+endm
+
+; Если cond1 и cond2 (условие cond2 проверяется только в том случае, если cond1 выполнилось), исполнить do1; иначе do0
+ifandel		macro	cond1:req, cond2:req, do1, do0
+	ifandelx < cond1>, < cond2>, <do1>, <do0>
 endm
 
 ; Аналогично ifel, но условие подставляется слитно с if, например: ifelx <def debug>, <int 3>, nop
@@ -65,37 +93,66 @@ ifelifx		macro	cond1:req, do1, cond2:req, do2, do0
 	endif
 endm
 
-;-----------------------------------------------------------------------------------------------------------------------
-
-; Если идентификатор value определён, установить значение const = value, иначе установить значение _const = defval
-defdef		macro	const:req, value:req, defval:req
-  ifdef		value
-	const	=	value
-  else
-	const	=	defval
-  endif
+; Аналогично iforel, но условия подставляются слитно с if
+iforelx		macro	cond1:req, cond2:req, do1, do0
+	ifelifx	<cond1>, <do1>, <cond2>, <do1>, <do0>
 endm
 
-; Если константа const определена, установить значение _const = const, иначе установить значение _const = defval
-_defdef		macro	const:req, defval:req
-	defdef	<_&const>, <const>, <defval>
+; Аналогично ifandel, но условия подставляются слитно с if
+ifandelx	macro	cond1:req, cond2:req, do1, do0
+	if&cond1
+	  if&cond2
+		do1
+	  else
+		do0
+	  endif
+	else
+		do0
+	endif
+endm
+
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Если константа value1 определена, установить значение const = value1, иначе:
+; а) если задано 2 параметра, то установить значение const = value2
+; б) если задано 3 параметра, то если константа value2 определена, установить значение const = value2, иначе установить значение const = value3
+defdef		macro	const:req, value1:req, value2:req, value3
+  ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifx <def value2>, <const = value2>, <const = value3>>
+endm
+
+; Если константа const определена, установить значение _const = const, иначе:
+; а) если задано 2 параметра, то установить значение _const = defval1
+; б) если задано 3 параметра, то если константа defval1 определена, установить значение _const = defval1, иначе установить значение _const = defval2
+_defdef		macro	const:req, defval1:req, defval2
+	defdef	<_&const>, <const>, <defval1>, <defval2>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Вывод сообщения txt об ошибке (одинаковый синтаксис для MASM и TASM)
-?err		macro	txt
-  ifel	isTASM, <.err "&txt">, <.err <&txt>>
+; Если задан параметр exclam (любой), в конец сообщения добавляется ' !!!'
+?err		macro	txt, exclam
+	ifnb	<exclam>
+	  if	isTASM
+	    .err "&txt !!!"
+	  else
+	    .err <txt !!!!!!>
+	  endif
+	else
+	  ifel	isTASM, <.err "&txt">, <.err <txt>>
+	endif
 endm
 
 ; Вывод сообщения txt об ошибке при выполнении условия cond
-?errif		macro	cond:req, txt
-  ifx	< cond>, <?err <txt>>
+; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
+?errif		macro	cond:req, txt, exclam
+	ifx	< cond>, <?err <txt>, <exclam>>
 endm
 
 ; Аналогично ?errif, но условие подставляется слитно с if, например: ?errifx <ndef ok>, <Error message>
-?errifx		macro	cond:req, txt
-  ifx	<cond>, <?err <txt>>
+; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
+?errifx		macro	cond:req, txt, exclam
+	ifx	<cond>, <?err <txt>, <exclam>>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
@@ -149,12 +206,35 @@ ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
 ; Разрешены ли инструкции/регистры процессора 80386
 @386		=	(@Cpu and 8) or (@Cpu eq 0)	; в TASM @Cpu = 0 в режиме .586
 
+; Определение идентификаторов регистров (и не только), универсальных для 16 и 32-битных режимов.
+if		@32Bit
+	xax	equ	<eax>
+	xbx	equ	<ebx>
+	xcx	equ	<ecx>
+	xdx	equ	<edx>
+	xsi	equ	<esi>
+	xdi	equ	<edi>
+	xbp	equ	<ebp>
+	xsp	equ	<esp>
+	@word	equ	<dword>
+	jxcxz	equ	<jecxz>
+else
+	xax	equ	<ax>
+	xbx	equ	<bx>
+	xcx	equ	<cx>
+	xdx	equ	<dx>
+	xsi	equ	<si>
+	xdi	equ	<di>
+	xbp	equ	<bp>
+	xsp	equ	<sp>
+	@word	equ	<word>
+	jxcxz	equ	<jcxz>
+endif ; @32Bit
 ; Включить режим оптимизации и использования локальных меток, начинающихся на @@
 ifdo		isTASM,	<_ smart, locals>
 
 ; Проверка требуемой версии данного include-файла, заданной через константу xmacro_ver_req или xmac_ver_req
 ifx		<def xmac_ver_req>, <?errif <xmac_ver_req gt xmac_ver>, <Version of 'xmac.inc' is less than required :(>>
-?errifx		<def xmacro_ver_req>, <Full edition of 'xmacro.inc' is required :(>
 
 ;=======================================================================================================================
 
@@ -227,12 +307,6 @@ callf		macro	seg, ofs
 	ifelx	<nb <seg>>, <dw ofs, seg>
 endm
 
-; call int (pushf + callf)
-calli		macro	seg, ofs
-		pushf
-		callf	seg, ofs
-endm
-
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Выполнение присвоения значения регистру с помощью mov или xor (если src = 0)
@@ -245,27 +319,6 @@ endm
 ; Чтобы передать в параметре src константу, необходимо поставить перед ней % (cmpx ax,%val), иначе test не выполнится
 cmpx		macro	dst:req, src:req
 	ifelx	<idn <src>, <0>>, <test dst,dst>, <cmp dst,src>
-endm
-
-; Выполнение присвоения op = val через стек
-movp		macro	op:req, val:req
-		push	val
-		pop	op
-endm
-
-; Выполнение присвоения op = val через временный регистр temp (по умолчанию ax; например, movt ds,@data или movt es,0A000h,dx)
-movt		macro	op:req, val:req, temp:=<ax>
-		mov	temp,val
-		pop	op2
-endm
-
-; Обмен значениями op1 и op2 через стек
-; Макрос не проверяет соответствие разрядности операндов !!!
-xchgp		macro	op1:req, op2:req
-		push	op1
-		push	op2
-		pop	op1
-		pop	op2
 endm
 
 ; Сохранение регистров в одну строку: push ax, bx, cx, dx
@@ -293,9 +346,7 @@ popb		macro	regs:vararg
 	  i = 0
 	  irp	r, <regs>
 	    i = i + 1
-	    if	i eq n
-		pop	r
-	    endif
+	    ifdo <i eq n>, <pop r>
 	  endm
 	  n = n - 1
 	endm
@@ -321,42 +372,4 @@ irp		x, <byte, word, dword>
 	lods x ptr s:[si]
     endm
   endm
-endm
-
-; Данный макрос определяет множество других макросов, которые выполняют outsb/outsw/outsd с использованием сегментов, отличных от ds
-; outsb_seg, outsw_seg, outsd_seg с названием сегментного регистра в качестве аргумента (например, outsb_seg es)
-; outsb_es, outsb_cs, outsb_ss,
-; outsw_es, outsw_cs, outsw_ss,
-; outsd_es, outsd_cs, outsd_ss без аргументов
-irp		x, <byte, word, dword>
-  local	t, m1, m2
-  t	substr	<x>,1,1
-  m1	catstr	<outs>,t,<_seg>
-  m1	macro	seg:req
-	outs x ptr seg:[si]
-  endm
-  irp		s, <es, cs, ss>
-    m2	catstr	<outs>,t,<_>,<s>
-    m2	macro
-	outs x ptr s:[si]
-    endm
-  endm
-endm
-
-;-----------------------------------------------------------------------------------------------------------------------
-
-; Вызов прерывания no с установкой регистров reg1 = val1, reg2 = val2...
-; Если указан только reg1 без val1, то значение reg1 заносится в ah (или ax, если число > 0FFh)
-; Например: intfn 16h,0 или intfn 15h,ah,86h,cx,0,dx,10000
-intfn		macro	no:req, reg1:req, val1, reg2, val2, reg3, val3, reg4, val4, reg5, val5
-	ifnb	<val1>
-		movx	reg1,val1
-	else
-	  ifel	<reg1 lt 100h>, <movx ah,reg1>, <movx ax,reg1>
-	endif
-	ifelx	<nb <reg2>>, <movx reg2,val2>
-	ifelx	<nb <reg3>>, <movx reg3,val3>
-	ifelx	<nb <reg4>>, <movx reg4,val4>
-	ifelx	<nb <reg5>>, <movx reg5,val5>
-		int	no
 endm

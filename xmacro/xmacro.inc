@@ -2,16 +2,30 @@
 ;##                                        ##
 ;##   -= EXTRA MACROSES (FULL EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
-;##             Полный вариант             ##
-;##         [ v1.00 :: 09.01.2017 ]        ##
+;##             Полная редакция            ##
+;##         [ v1.01 :: 22.01.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
 ;##                                        ##
 ;############################################
 
-xmacro_ver	=	100h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
+xmacro_ver	=	101h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
 
+;------------------------------------------------------------------------------------------------------------------------
+;
+; -= ИСТОРИЯ ВЕРСИЙ =-
+;
+; v1.01 (22.01.2017)
+; [+] Добавлены идентификаторы xax, xbx, xcx, xdx, xsi, xdi, xbp, xsp, @word, jxcxz.
+; [+] Добавлен псевдоним ifndo.
+; [*] В макросы defdef и _defdef добавлен дополнительный параметр, позволяющий делать проверку ещё одной константы.
+; [*] В макросы ?err, ?errif, ?errifx добавлен дополнительный параметр, позволяющий добавлять к сообщению 3 восклицательных знака.
+; [*] Исправлен баг в макросе movt.
+;
+; v1.00 (09.01.2017)
+; [!] Самая первая версия.
+;
 ;-----------------------------------------------------------------------------------------------------------------------
 
 @		equ	<offset>
@@ -48,6 +62,8 @@ ifn		equ	<ife>
 ifnel		macro	cond:req, do1, do0
 	ifelx	<e cond>, <do1>, <do0>
 endm
+ifndo		equ	<ifnel>
+
 ifeel		equ	<ifnel>
 
 ; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
@@ -223,35 +239,46 @@ endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
 
-; Если идентификатор value определён, установить значение const = value, иначе установить значение _const = defval
-defdef		macro	const:req, value:req, defval:req
-  ifdef		value
-	const	=	value
-  else
-	const	=	defval
-  endif
+; Если константа value1 определена, установить значение const = value1, иначе:
+; а) если задано 2 параметра, то установить значение const = value2
+; б) если задано 3 параметра, то если константа value2 определена, установить значение const = value2, иначе установить значение const = value3
+defdef		macro	const:req, value1:req, value2:req, value3
+  ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifx <def value2>, <const = value2>, <const = value3>>
 endm
 
-; Если константа const определена, установить значение _const = const, иначе установить значение _const = defval
-_defdef		macro	const:req, defval:req
-	defdef	<_&const>, <const>, <defval>
+; Если константа const определена, установить значение _const = const, иначе:
+; а) если задано 2 параметра, то установить значение _const = defval1
+; б) если задано 3 параметра, то если константа defval1 определена, установить значение _const = defval1, иначе установить значение _const = defval2
+_defdef		macro	const:req, defval1:req, defval2
+	defdef	<_&const>, <const>, <defval1>, <defval2>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Вывод сообщения txt об ошибке (одинаковый синтаксис для MASM и TASM)
-?err		macro	txt
-  ifel	isTASM, <.err "&txt">, <.err <&txt>>
+; Если задан параметр exclam (любой), в конец сообщения добавляется ' !!!'
+?err		macro	txt, exclam
+	ifnb	<exclam>
+	  if	isTASM
+	    .err "&txt !!!"
+	  else
+	    .err <txt !!!!!!>
+	  endif
+	else
+	  ifel	isTASM, <.err "&txt">, <.err <txt>>
+	endif
 endm
 
 ; Вывод сообщения txt об ошибке при выполнении условия cond
-?errif		macro	cond:req, txt
-  ifx	< cond>, <?err <txt>>
+; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
+?errif		macro	cond:req, txt, exclam
+	ifx	< cond>, <?err <txt>, <exclam>>
 endm
 
 ; Аналогично ?errif, но условие подставляется слитно с if, например: ?errifx <ndef ok>, <Error message>
-?errifx		macro	cond:req, txt
-  ifx	<cond>, <?err <txt>>
+; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
+?errifx		macro	cond:req, txt, exclam
+	ifx	<cond>, <?err <txt>, <exclam>>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
@@ -337,10 +364,35 @@ ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
 @586		=	(@Cpu and 20h) or (@Cpu eq 0)
 @686		=	@Cpu and 40h
 
+; Определение идентификаторов регистров (и не только), универсальных для 16 и 32-битных режимов.
+if		@32Bit
+  xax		equ	<eax>
+  xbx		equ	<ebx>
+  xcx		equ	<ecx>
+  xdx		equ	<edx>
+  xsi		equ	<esi>
+  xdi		equ	<edi>
+  xbp		equ	<ebp>
+  xsp		equ	<esp>
+  @word		equ	<dword>
+  jxcxz		equ	<jecxz>
+else
+  xax		equ	<ax>
+  xbx		equ	<bx>
+  xcx		equ	<cx>
+  xdx		equ	<dx>
+  xsi		equ	<si>
+  xdi		equ	<di>
+  xbp		equ	<bp>
+  xsp		equ	<sp>
+  @word		equ	<word>
+  jxcxz		equ	<jcxz>
+endif ; @32Bit
+
 ; Включить режим оптимизации и использования локальных меток, начинающихся на @@
 ifdo		isTASM,	<_ smart, locals>
 
-; Проверка требуемой версии данного include-файла, заданной через константу xmacro_ver_req или xmac_ver_req
+; Проверка требуемой версии данного include-файла, заданной через константу xmacro_ver_req, xmac_ver_req или xm_ver_req
 ifx		<def xmacro_ver_req>, <?errif <xmacro_ver_req gt xmacro_ver>, <Version of 'xmacro.inc' is less than required :(>>
 ifx		<def xmac_ver_req>, <?errif <xmac_ver_req gt xmacro_ver>, <Version of 'xmacro.inc' is less than required :(>>
 
@@ -442,16 +494,16 @@ cmpx		macro	dst:req, src:req
 	ifidnel	<src>, <0>, <test dst,dst>, <cmp dst,src>
 endm
 
+; Выполнение присвоения op = val через временный регистр temp (по умолчанию ax; например, movt ds,@data или movt es,0A000h,dx)
+movt		macro	op:req, val:req, temp:=<ax>
+		movx	temp,val
+		mov	op,temp
+endm
+
 ; Выполнение присвоения op = val через стек
 movp		macro	op:req, val:req
 		push	val
 		pop	op
-endm
-
-; Выполнение присвоения op = val через временный регистр temp (по умолчанию ax; например, movt ds,@data или movt es,0A000h,dx)
-movt		macro	op:req, val:req, temp:=<ax>
-		mov	temp,val
-		pop	op2
 endm
 
 ; Обмен значениями op1 и op2 через стек
@@ -488,9 +540,7 @@ popb		macro	regs:vararg
 	  i = 0
 	  irp	r, <regs>
 	    i = i + 1
-	    if	i eq n
-		pop	r
-	    endif
+	    ifdo <i eq n>, <pop r>
 	  endm
 	  n = n - 1
 	endm
