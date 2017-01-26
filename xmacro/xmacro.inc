@@ -377,7 +377,7 @@ if		@32Bit
   $word		equ	<dword>
   j$cxz		equ	<jecxz>
   cwdq$		equ	<cdq>
-  ; MASM кодирует pushf/popf как pushfw/popfw в 32-битном режиме (а вот pusha и popa - как положено: pushad, popad, поэтому для них идентификаторов не сделано)
+  ; MASM в 32-битном режиме кодирует pushf/popf как pushfw/popfw (а вот pusha и popa - как положено: pushad, popad, поэтому для них идентификаторов не сделано)
   pushf$	equ	<pushfd>
   popf$		equ	<popfd>
 else
