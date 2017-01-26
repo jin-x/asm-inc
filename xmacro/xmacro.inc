@@ -3,7 +3,7 @@
 ;##   -= EXTRA MACROSES (FULL EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
 ;##             Полная редакция            ##
-;##         [ v1.01 :: 22.01.2017 ]        ##
+;##         [ v1.01 :: 26.01.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
@@ -17,7 +17,7 @@ xmacro_ver	=	101h			; версия данного файла (word: старший байт - целая часть, мл
 ; -= ИСТОРИЯ ВЕРСИЙ =-
 ;
 ; v1.01 (22.01.2017)
-; [+] Добавлены идентификаторы xax, xbx, xcx, xdx, xsi, xdi, xbp, xsp, @word, jxcxz.
+; [+] Добавлены идентификаторы $ax, $bx, $cx, $dx, $si, $di, $bp, $sp, $word, j$cxz, cwdq$, pushf$, popf$.
 ; [+] Добавлен псевдоним ifndo.
 ; [*] В макросы defdef и _defdef добавлен дополнительный параметр, позволяющий делать проверку ещё одной константы.
 ; [*] В макросы ?err, ?errif, ?errifx добавлен дополнительный параметр, позволяющий добавлять к сообщению 3 восклицательных знака.
@@ -364,29 +364,36 @@ ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
 @586		=	(@Cpu and 20h) or (@Cpu eq 0)
 @686		=	@Cpu and 40h
 
-; Определение идентификаторов регистров (и не только), универсальных для 16 и 32-битных режимов.
+; Определение идентификаторов регистров и инструкций, универсальных для 16 и 32-битных режимов.
 if		@32Bit
-  xax		equ	<eax>
-  xbx		equ	<ebx>
-  xcx		equ	<ecx>
-  xdx		equ	<edx>
-  xsi		equ	<esi>
-  xdi		equ	<edi>
-  xbp		equ	<ebp>
-  xsp		equ	<esp>
-  @word		equ	<dword>
-  jxcxz		equ	<jecxz>
+  $ax		equ	<eax>
+  $bx		equ	<ebx>
+  $cx		equ	<ecx>
+  $dx		equ	<edx>
+  $si		equ	<esi>
+  $di		equ	<edi>
+  $bp		equ	<ebp>
+  $sp		equ	<esp>
+  $word		equ	<dword>
+  j$cxz		equ	<jecxz>
+  cwdq$		equ	<cdq>
+  ; MASM кодирует pushf/popf как pushfw/popfw в 32-битном режиме (а вот pusha и popa - как положено: pushad, popad, поэтому для них идентификаторов не сделано)
+  pushf$	equ	<pushfd>
+  popf$		equ	<popfd>
 else
-  xax		equ	<ax>
-  xbx		equ	<bx>
-  xcx		equ	<cx>
-  xdx		equ	<dx>
-  xsi		equ	<si>
-  xdi		equ	<di>
-  xbp		equ	<bp>
-  xsp		equ	<sp>
-  @word		equ	<word>
-  jxcxz		equ	<jcxz>
+  $ax		equ	<ax>
+  $bx		equ	<bx>
+  $cx		equ	<cx>
+  $dx		equ	<dx>
+  $si		equ	<si>
+  $di		equ	<di>
+  $bp		equ	<bp>
+  $sp		equ	<sp>
+  $word		equ	<word>
+  j$cxz		equ	<jcxz>
+  cwdq$		equ	<cwd>
+  pushf$	equ	<pushf>
+  popf$		equ	<popf>
 endif ; @32Bit
 
 ; Включить режим оптимизации и использования локальных меток, начинающихся на @@
