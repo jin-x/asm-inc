@@ -3,7 +3,7 @@
 ;##   -= EXTRA MACROSES (FULL EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
 ;##             Полная редакция            ##
-;##         [ v1.02 :: 26.01.2017 ]        ##
+;##         [ v1.02 :: 01.02.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
