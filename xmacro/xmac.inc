@@ -3,18 +3,28 @@
 ;##   -= EXTRA MACROSES (MINI EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
 ;##          Сокращённая редакция          ##
-;##         [ v1.02 :: 01.02.2017 ]        ##
+;##         [ v1.03 :: 08.03.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
 ;##                                        ##
 ;############################################
 
-xmac_ver	=	102h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
+xmac_ver	=	103h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
 
 ;------------------------------------------------------------------------------------------------------------------------
 ;
 ; -= ИСТОРИЯ ВЕРСИЙ =-
+;
+; v1.03 (08.03.2017)
+; [+] Добавлены макросы doif, doifn и doifx, работающие аналогично ifdo, ifndo и ifx, но позволяющие указывать параметр do без <угловых скобок> (ifdo, ifndo и ifx сохранены для обратной совместимости).
+; [+] Добавлены макросы doifset, doifnset и ifsetel, проверяющие и определение идентификатора, и его значение.
+; [+] Добавлены макросы aligndata, aligncode.
+; [+] Добавлен идентификатор dw$, определяющий dw или dd в зависимости от разрядности кода.
+; [+] Добавлены идентификаторы proto = procdesc и invoke = call для TASM.
+; [+] По умолчанию данный include-файл включает директивы locals и smart для TASM; если нужно их отключить, установите константу xnodir = 1 ДО включения файла.
+; [+] Требуемую версию данного include-файла можно теперь проверять не только через константу xmac_ver_req, но и через макрос check_xmac_ver (после подключения файла), что исключает возможность опечатки.
+; [*] Сделаны некоторые перестановки и изменения в макросах (например, ifel переписан без использования вложенных макросов, что должно увеличить скорость и упростить обнаружение ошибок в коде).
 ;
 ; v1.02 (01.02.2017)
 ; [+] Добавлен макрос loopx, генерирующий dec + jnz (jns).
@@ -47,34 +57,22 @@ endm
 
 ; Если cond, исполнить do1; иначе do0
 ifel		macro	cond:req, do1, do0
-	ifelx	< cond>, <do1>, <do0>
+	if	cond
+		do1
+	else
+		do0
+	endif
 endm
 ifdo		equ	<ifel>
-
-ifn		equ	<ife>
 
 ; Если НЕ cond, исполнить do1; иначе do0
 ifnel		macro	cond:req, do1, do0
 	ifelx	<e cond>, <do1>, <do0>
 endm
 ifndo		equ	<ifnel>
-
 ifeel		equ	<ifnel>
 
-; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
-ifelif		macro	cond1:req, do1, cond2:req, do2, do0
-	ifelifx	< cond1>, <do1>, < cond2>, <do2>, <do0>
-endm
-
-; Если cond1 или cond2 (условие cond2 проверяется только в том случае, если cond1 не выполнилось), исполнить do1; иначе do0
-iforel		macro	cond1:req, cond2:req, do1, do0
-	ifelifx	< cond1>, <do1>, < cond2>, <do1>, <do0>
-endm
-
-; Если cond1 и cond2 (условие cond2 проверяется только в том случае, если cond1 выполнилось), исполнить do1; иначе do0
-ifandel		macro	cond1:req, cond2:req, do1, do0
-	ifandelx < cond1>, < cond2>, <do1>, <do0>
-endm
+ifn		equ	<ife>
 
 ; Аналогично ifel, но условие подставляется слитно с if, например: ifelx <def debug>, <int 3>, nop
 ifelx		macro	cond:req, do1, do0
@@ -86,6 +84,56 @@ ifelx		macro	cond:req, do1, do0
 endm
 ifx		equ	<ifelx>
 
+;-= ВАЖНЫЕ КОНСТАНТЫ -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+false		=	0
+true		=	not false
+
+; Установка isTASM = true и isMASM = false, если текущий компилятор - TASM, иначе наоборот
+ifelx		<def ??Version>, <_ <isTASM = true>, <isMASM = false>>, <_ <isMASM = true>, <isTASM = false>>
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+if		isTASM
+; Если cond, исполнить do (do ненужно заключать в <>)
+  doif		macro	cond:req, do:rest
+	if	cond
+		do
+	endif
+  endm
+
+; Если НЕ cond, исполнить do (do ненужно заключать в <>)
+  doifn		macro	cond:req, do:rest
+	doifx	<e cond>, do
+  endm
+
+; Аналогично doif, но условие подставляется слитно с if, например: doifx <def debug>, int 3 (do ненужно заключать в <>)
+  doifx		macro	cond:req, do:rest
+	if&cond
+		do
+	endif
+  endm
+else ; аналогичные макросы для MASM
+  doif		macro	cond:req, do:vararg
+	if	cond
+		do
+	endif
+  endm
+
+  doifn		macro	cond:req, do:vararg
+	doifx	<e cond>, do
+  endm
+
+  doifx		macro	cond:req, do:vararg
+	if&cond
+		do
+	endif
+  endm
+endif ; else/if isTASM
+
+; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
+ifelif		macro	cond1:req, do1, cond2:req, do2, do0
+	ifelifx	< cond1>, <do1>, < cond2>, <do2>, <do0>
+endm
+
 ; Аналогично ifelif, но условия подставляются слитно с if, например: ifelifx <def debug>, <int 3>, <idn <spec>, <stosb>>, stosb, nop
 ifelifx		macro	cond1:req, do1, cond2:req, do2, do0
 	if&cond1
@@ -95,6 +143,16 @@ ifelifx		macro	cond1:req, do1, cond2:req, do2, do0
 	else
 		do0
 	endif
+endm
+
+; Если cond1 или cond2 (условие cond2 проверяется только в том случае, если cond1 не выполнилось), исполнить do1; иначе do0
+iforel		macro	cond1:req, cond2:req, do1, do0
+	ifelifx	< cond1>, <do1>, < cond2>, <do1>, <do0>
+endm
+
+; Если cond1 и cond2 (условие cond2 проверяется только в том случае, если cond1 выполнилось), исполнить do1; иначе do0
+ifandel		macro	cond1:req, cond2:req, do1, do0
+	ifandelx < cond1>, < cond2>, <do1>, <do0>
 endm
 
 ; Аналогично iforel, но условия подставляются слитно с if
@@ -115,13 +173,54 @@ ifandelx	macro	cond1:req, cond2:req, do1, do0
 	endif
 endm
 
+if		isTASM
+; Если id определён и НЕ равен 0, выполнить do (do ненужно заключать в <>)
+  doifset	macro	id:req, do:rest
+	ifdef	id
+	  if	id
+		do
+	  endif
+	endif
+  endm
+
+; Если id НЕопределён или равен 0, выполнить do (do ненужно заключать в <>)
+  doifnset	macro	id:req, do:rest
+	ifndef	id
+		do
+	elseife	id
+		do
+	endif
+  endm
+else ; аналогичный макрос для MASM
+  doifset	macro	id:req, do:vararg
+	ifdef	id
+	  if	id
+		do
+	  endif
+	endif
+  endm
+
+  doifnset	macro	id:req, do:vararg
+	ifndef	id
+		do
+	elseife	id
+		do
+	endif
+  endm
+endif ; else/if isTASM
+
+; Если id определён и НЕ равен 0, выполнить do1, иначе do0
+ifsetel		macro	id:req, do1, do0
+	ifandelx	<def id>, < id>, do1, do0
+endm
+
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Если константа value1 определена, установить значение const = value1, иначе:
 ; а) если задано 2 параметра, то установить значение const = value2
 ; б) если задано 3 параметра, то если константа value2 определена, установить значение const = value2, иначе установить значение const = value3
 defdef		macro	const:req, value1:req, value2:req, value3
-  ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifx <def value2>, <const = value2>, <const = value3>>
+  ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifelx <def value2>, <const = value2>, <const = value3>>
 endm
 
 ; Если константа const определена, установить значение _const = const, иначе:
@@ -150,13 +249,13 @@ endm
 ; Вывод сообщения txt об ошибке при выполнении условия cond
 ; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
 ?errif		macro	cond:req, txt, exclam
-	ifx	< cond>, <?err <txt>, <exclam>>
+	doifx	< cond>, ?err <txt>, <exclam>
 endm
 
 ; Аналогично ?errif, но условие подставляется слитно с if, например: ?errifx <ndef ok>, <Error message>
 ; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
 ?errifx		macro	cond:req, txt, exclam
-	ifx	<cond>, <?err <txt>, <exclam>>
+	doifx	<cond>, ?err <txt>, <exclam>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
@@ -192,20 +291,12 @@ endm
 ?elseif2	equ	<elseif2>
 ?endif		equ	<endif>
 
-;=======================================================================================================================
-
 ;-----------------------------------------------------------------------------------------------------------------------
 ;-- ОПРЕДЕЛЕНИЕ ЗНАЧЕНИЙ КОНСТАНТ --------------------------------------------------------------------------------------
 ;-----------------------------------------------------------------------------------------------------------------------
 
-false		=	0
-true		=	not false
-
-; Установка isTASM = true и isMASM = false, если текущий компилятор - TASM, иначе наоборот
-ifelx		<def ??Version>, <_ <isTASM = true>, <isMASM = false>>, <_ <isMASM = true>, <isTASM = false>>
-
 ; Установка идентификатора @32Bit (32-битный режим) в MASM
-ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
+doif		isMASM, @32Bit = (@WordSize eq 4)
 
 ; Разрешены ли инструкции/регистры процессора 80386
 @386		=	(@Cpu and 8) or (@Cpu eq 0)	; в TASM @Cpu = 0 в режиме .586
@@ -226,6 +317,7 @@ if		@32Bit
   ; MASM в 32-битном режиме кодирует pushf/popf как pushfw/popfw (а вот pusha и popa - как положено: pushad, popad, поэтому для них идентификаторов не сделано)
   pushf$	equ	<pushfd>
   popf$		equ	<popfd>
+  dw$		equ	<dd>
 else
   $ax		equ	<ax>
   $bx		equ	<bx>
@@ -240,14 +332,44 @@ else
   cwdq$		equ	<cwd>
   pushf$	equ	<pushf>
   popf$		equ	<popf>
+  dw$		equ	<dw>
 endif ; @32Bit
+
+; Директивы для TASM из MASM
+doif		isTASM, proto equ <procdesc>
+doif		isTASM, invoke equ <call>
+
 ; Включить режим оптимизации и использования локальных меток, начинающихся на @@
-ifdo		isTASM,	<_ smart, locals>
+doifnset	xnodir, doif isTASM, _ smart, locals
 
-; Проверка требуемой версии данного include-файла, заданной через константу xmacro_ver_req или xmac_ver_req
-ifx		<def xmac_ver_req>, <?errif <xmac_ver_req gt xmac_ver>, <Version of 'xmac.inc' is less than required :(>>
+; Проверка требуемой версии данного include-файла, заданной параметром ver
+check_xmac_ver	macro	ver:req
+	?errif <ver gt xmac_ver>, <Version of 'xmac.inc' is less than required :(>
+endm
 
-;=======================================================================================================================
+; Проверка требуемой версии данного include-файла, заданной через константу xmac_ver_req
+doifx		<def xmac_ver_req>, check_xmac_ver xmac_ver_req
+
+;-----------------------------------------------------------------------------------------------------------------------
+;-- ВСПОМОГАТЕЛЬНЫЕ МАКРОСЫ --------------------------------------------------------------------------------------------
+;-----------------------------------------------------------------------------------------------------------------------
+
+; Выравнивание данных по адресу, кратному value (со сдвигом на shift) относительно позиции rel, заполняя пространство символами chr
+aligndata	macro	value:=<@WordSize>, shift:=<0>, rel:=<0>, chr:=<?>
+	local	x, y, z
+	x	=	$
+		org	rel
+	y:	org	x
+	z	=	(shift mod value + value) mod value
+	while	((($-y) mod value + value) mod value) ne z
+		db	chr
+	endm
+endm
+
+; Выравнивание кода по адресу, кратному value (со сдвигом на shift) относительно позиции rel, заполняя пространство nop'ами
+aligncode	macro	value:=<@WordSize>, shift:=<0>, rel:=<0>
+	aligndata	value, shift, rel, 90h
+endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
 ;-- МАКРОСЫ, ОПИСЫВАЮЩИЕ ИЛИ УПРОЩАЮЩИЕ ИСПОЛЬЗОВАНИЕ ИНСТРУКЦИЙ ПРОЦЕССОРА --------------------------------------------
@@ -364,7 +486,7 @@ popb		macro	regs:vararg
 	  i = 0
 	  irp	r, <regs>
 	    i = i + 1
-	    ifdo <i eq n>, <pop r>
+	    doif <i eq n>, pop r
 	  endm
 	  n = n - 1
 	endm
