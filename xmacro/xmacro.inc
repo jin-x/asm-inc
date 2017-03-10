@@ -3,18 +3,32 @@
 ;##   -= EXTRA MACROSES (FULL EDITION) =-  ##
 ;##      МАКРОСЫ ДЛЯ MASM/TASM (16/32)     ##
 ;##             Полная редакция            ##
-;##         [ v1.03 :: 08.03.2017 ]        ##
+;##         [ v1.04 :: 10.03.2017 ]        ##
 ;##                                        ##
 ;##  (c) 2017 by Jin X (jin.x@sources.ru)  ##
 ;##           http://xk7.ru/p/a/i          ##
 ;##                                        ##
 ;############################################
 
-xmacro_ver	=	103h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
+xmacro_ver	=	104h			; версия данного файла (word: старший байт - целая часть, младший - дробная)
 
 ;------------------------------------------------------------------------------------------------------------------------
 ;
 ; -= ИСТОРИЯ ВЕРСИЙ =-
+;
+; v1.04 (10.03.2017)
+; [!] Обнаружен баг, который появился вместе с макросами doifXXX в предыдущей версии (1.03), и я пока не знаю как его исправить (если знаете, напишите мне) !!!
+;     MASM выдаёт ошибку при совместном использовании макросов doifXXX и _ с параметрами, содержащими запятые в угловых скобках (например, doif x, _ <mov ax,bx>), параметр
+;     макроса _ разделяется на несколько, будто угловых скобок нет (данный пример работает аналогично doif x, _ mov ax,bx; т.е. макрос _ получает 2 параметра: mov ax и bx).
+;     Пока я вижу только два варианта решения данной проблемы:
+;     1. использовать макросы ifXXX, заключая также и макрос _ в угловые скобки (ifdo x, <_ <mov ax,bx>>) - это ЛУЧШИЙ ВАРИАНТ,
+;     2. использовать двойные угловые скобки (doif x, _ <<mov ax,bx>>), однако этот вариант НЕ работает в TASM, что плохо, учитывая, что данный include-файл является универсальным для TASM и MASM.
+;     p.s. Эта проблема проявляется у макросов doifXXX не только с макросом _, но и с другими, принимающими несколько параметров, которые могут содержать запятые (например, doif x, ?errif <hello, world>).
+; [+] Добавлены макросы ifnsetel и ifseteel (в дополнение к ifsetel) и псевдонимы для всех 3-х макросов: ifset, ifnset и ifsete.
+; [+] Добавлен макрос fastnops и константа fastnopsprefix, а макрос aligncode получил дополнительный параметр prefix и использует (так же, как и alignc и aligncs) nop'ы с префиксами.
+; [*] Исправлена ошибка в макросе ifsetel, возникающая при использовании угловых скобок в do1 и/или do0.
+; [*] Макрос _ расширен до 16 параметров.
+; [*] Макрос ifelif переписан без использования вложенных макросов.
 ;
 ; v1.03 (08.03.2017)
 ; [+] Добавлены макросы doif, doifn и doifx, работающие аналогично ifdo, ifndo и ifx, но позволяющие указывать параметр do без <угловых скобок> (ifdo, ifndo и ifx сохранены для обратной совместимости).
@@ -55,8 +69,8 @@ $n		equ	<near>
 $f		equ	<far>
 
 ; Выполнение инструкций/директив/макросов, заданных одной строкой
-_		macro	p1, p2, p3, p4, p5, p6, p7, p8, p9, p10
-	irp	x, <<p1>, <p2>, <p3>, <p4>, <p5>, <p6>, <p7>, <p8>, <p9>, <p10>>
+_		macro	p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16
+	irp	x, <<p1>, <p2>, <p3>, <p4>, <p5>, <p6>, <p7>, <p8>, <p9>, <p10>, <p11>, <p12>, <p13>, <p14>, <p15>, <p16>>
 		x
 	endm
 endm
@@ -146,7 +160,13 @@ ifeelx		equ	<ifnelx>
 
 ; Если cond1, исполнить do1; иначе если cond2, исполнить do2; иначе do0
 ifelif		macro	cond1:req, do1, cond2:req, do2, do0
-	ifelifx	< cond1>, <do1>, < cond2>, <do2>, <do0>
+	if	cond1
+		do1
+	elseif	cond2
+		do2
+	else
+		do0
+	endif
 endm
 
 ; Аналогично ifelif, но условия подставляются слитно с if, например: ifelifx <def debug>, <int 3>, <idn <spec>, <stosb>>, stosb, nop
@@ -226,7 +246,7 @@ endm
 
 ; Если cond1 или cond2 (условие cond2 проверяется только в том случае, если cond1 не выполнилось), исполнить do1; иначе do0
 iforel		macro	cond1:req, cond2:req, do1, do0
-	ifelifx	< cond1>, <do1>, < cond2>, <do1>, <do0>
+	ifelif	<cond1>, <do1>, <cond2>, <do1>, <do0>
 endm
 
 ; Если cond1 и cond2 (условие cond2 проверяется только в том случае, если cond1 выполнилось), исполнить do1; иначе do0
@@ -307,8 +327,21 @@ endif ; else/if isTASM
 
 ; Если id определён и НЕ равен 0, выполнить do1, иначе do0
 ifsetel		macro	id:req, do1, do0
-	ifandelx	<def id>, < id>, do1, do0
+	ifandelx <def id>, < id>, <do1>, <do0>
 endm
+ifset		equ	<ifsetel>
+
+; Если id НЕопределён или равен 0, выполнить do1, иначе do0
+ifnsetel	macro	id:req, do1, do0
+	iforelx <ndef id>, <e id>, <do1>, <do0>
+endm
+ifnset		equ	<ifnsetel>
+
+; Если id определён и равен 0, выполнить do1, иначе do0
+ifseteel	macro	id:req, do1, do0
+	ifandelx <def id>, <e id>, <do1>, <do0>
+endm
+ifsete		equ	<ifseteel>
 
 ;-----------------------------------------------------------------------------------------------------------------------
 
@@ -338,7 +371,7 @@ setiforx	macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
 	local	temp
 	temp	=	false
 	irp	x, <<c1>, <c2>, <c3>, <c4>, <c5>, <c6>, <c7>, <c8>>
-	  ifnbbel <x>, <doif <x>, temp = true>
+	  ifnbbel <x>, <ifdo <x>, <temp = true>>
 	  if	temp
 	    exitm
 	  endif
@@ -352,7 +385,7 @@ setifandx	macro	var:req, c1:req, c2:req, c3, c4, c5, c6, c7, c8
 	temp1	=	0
 	temp2	=	0
 	irp	x, <<c1>, <c2>, <c3>, <c4>, <c5>, <c6>, <c7>, <c8>>
-	  ifnbbel <x>, <_ <temp1 = temp1 + 1>, <doifx <x>, temp2 = temp2 + 1>>
+	  ifnbbel <x>, <_ <temp1 = temp1 + 1>, <ifx <x>, <temp2 = temp2 + 1>>>
 	endm
 	var	=	temp1 eq temp2
 endm
@@ -375,14 +408,14 @@ endm
 
 ; Вывод сообщения txt об ошибке при выполнении условия cond
 ; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
-?errif		macro	cond:req, txt, exclam:=<0>
-	doifx	< cond>, ?err <txt>, <exclam>
+?errif		macro	cond:req, txt, exclam
+	ifdo	<cond>, <?err <txt>, <exclam>>
 endm
 
 ; Аналогично ?errif, но условие подставляется слитно с if, например: ?errifx <ndef ok>, <Error message>
 ; Если exclam задан и не равен 0, в конец сообщения добавляется ' !!!'
 ?errifx		macro	cond:req, txt, exclam
-	doifx	<cond>, ?err <txt>, <exclam>
+	ifx	<cond>, <?err <txt>, <exclam>>
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
@@ -450,7 +483,7 @@ endm
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Установка идентификатора @32Bit (32-битный режим) в MASM
-doif		isMASM, @32Bit = (@WordSize eq 4)
+ifdo		isMASM, <@32Bit = (@WordSize eq 4)>
 
 ; Разрешены ли инструкции/регистры процессоров (в TASM @Cpu = 0 в режиме .586)
 @186		=	(@Cpu and 2) or (@Cpu eq 0)
@@ -495,21 +528,25 @@ else
 endif ; @32Bit
 
 ; Директивы для TASM из MASM
-doif		isTASM, proto equ <procdesc>
-doif		isTASM, invoke equ <call>
+ifdo		isTASM, <proto equ <procdesc>>
+ifdo		isTASM, <invoke equ <call>>
+
+; Опкод префикса, используемого по умолчанию для последовательности nop'ов (90h=nop - без префикса)
+; [можно использовать: 3Eh=ds, 2Eh=cs, 26h=es, 36h=ss, 0F2h=repne, 386+: 66h=operand resize, 67h=address resize, 64h=fs, 65h=gs; но только не 0F3h=repe, 0F0h=lock или иное значение !!!]
+ifel		@386, <fastnopsprefix = 66h>, <fastnopsprefix = 3Eh>
 
 ; Включить режим оптимизации и использования локальных меток, начинающихся на @@
-doifnset	xnodir, doif isTASM, _ smart, locals
+ifnset		xnodir, <ifdo isTASM, <_ smart, locals>>
 
 ; Проверка требуемой версии данного include-файла, заданной параметром ver
 check_xmacro_ver macro	ver:req
-	?errif <ver gt xmacro_ver>, <Version of 'xmac.inc' is less than required :(>
+	?errif <ver gt xmacro_ver>, <Version of 'xmac.inc' is less than required>, true
 endm
 check_xmac_ver	equ	<check_xmacro_ver>
 
 ; Проверка требуемой версии данного include-файла, заданной через константы xmacro_ver_req и xmac_ver_req
-doifx		<def xmacro_ver_req>, check_xmacro_ver xmacro_ver_req
-doifx		<def xmac_ver_req>, check_xmacro_ver xmac_ver_req
+ifx		<def xmacro_ver_req>, <check_xmacro_ver xmacro_ver_req>
+ifx		<def xmac_ver_req>, <check_xmacro_ver xmac_ver_req>
 
 ;-----------------------------------------------------------------------------------------------------------------------
 ;-- ВСПОМОГАТЕЛЬНЫЕ МАКРОСЫ --------------------------------------------------------------------------------------------
@@ -527,9 +564,19 @@ aligndata	macro	value:=<@WordSize>, shift:=<0>, rel:=<0>, chr:=<?>
 	endm
 endm
 
-; Выравнивание кода по адресу, кратному value (со сдвигом на shift) относительно позиции rel, заполняя пространство nop'ами
-aligncode	macro	value:=<@WordSize>, shift:=<0>, rel:=<0>
-	aligndata	value, shift, rel, 90h
+; Выравнивание кода по адресу, кратному value (со сдвигом на shift) относительно позиции rel, заполняя пространство nop'ами с префиксом fastnopsprefix (см. fastnops)
+aligncode	macro	value:=<@WordSize>, shift:=<0>, rel:=<0>, prefix:=<fastnopsprefix>
+	local	x, y, z, n
+	x	=	$
+		org	rel
+	y:	org	x
+	z	=	(shift mod value + value) mod value
+	n	=	0
+	while	((($-y) mod value + value) mod value) ne z
+		n = n+1
+	  ifel <((n mod 15) eq 0)>, nop, <db prefix>
+	endm
+	ifdo	<n gt 0>, <_ <org $-1>, nop>
 endm
 
 if	isTASM
@@ -582,7 +629,7 @@ endif ; else/if isTASM
 ; а) если задано 2 параметра, то установить значение const = value2
 ; б) если задано 3 параметра, то если константа value2 определена, установить значение const = value2, иначе установить значение const = value3
 defdef		macro	const:req, value1:req, value2:req, value3
-  ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifelx <def value2>, <const = value2>, <const = value3>>
+	ifelifx	<def value1>, <const = value1>, <b <value3>>, <const = value2>, <ifelx <def value2>, <const = value2>, <const = value3>>
 endm
 
 ; Если константа const определена, установить значение _const = const, иначе:
@@ -677,13 +724,13 @@ endm
 ;-----------------------------------------------------------------------------------------------------------------------
 
 ; Выполнение присвоения значения регистру с помощью mov или xor (если src = 0)
-; Чтобы передать в параметре src константу, необходимо поставить перед ней % (movx ax,%val), иначе xor не выполнится
+; Чтобы передать в параметре src константу, необходимо поставить перед ней % (movx ax,%val), иначе вместо xor будет использован mov
 movx		macro	dst:req, src:req
 	ifidnel	<src>, <0>, <xor dst,dst>, <mov dst,src>
 endm
 
 ; Выполнение сравнение регистра с помощью cmp или test (если src = 0)
-; Чтобы передать в параметре src константу, необходимо поставить перед ней % (cmpx ax,%val), иначе test не выполнится
+; Чтобы передать в параметре src константу, необходимо поставить перед ней % (cmpx ax,%val), иначе вместо test будет использован cmp
 cmpx		macro	dst:req, src:req
 	ifidnel	<src>, <0>, <test dst,dst>, <cmp dst,src>
 endm
@@ -741,7 +788,7 @@ popb		macro	regs:vararg
 	  i = 0
 	  irp	r, <regs>
 	    i = i + 1
-	    doif <i eq n>, pop r
+	    ifdo <i eq n>, <pop r>
 	  endm
 	  n = n - 1
 	endm
@@ -831,6 +878,17 @@ abseax		macro
 		cdq
 		xor	eax,edx
 		sub	eax,edx
+endm
+
+; Сгенерировать nop'ы в количестве num штук, разбавленные префиксом prefix (по умолчанию fastnopsprefix, которому изначально присваивается значение 3Eh = ds)
+; Выполняется значительно быстрее, чем обычная последовательность nop'ов; максимально допустимый размер инструкции (15 байт) не превышается
+fastnops	macro	num:req, prefix:=<fastnopsprefix>
+	local	n
+		n = 0
+	rept	num
+		n = n + 1
+	  ifel <((n mod 15) eq 0) or (n eq num)>, nop, <db prefix>
+	endm
 endm
 
 ;-----------------------------------------------------------------------------------------------------------------------
