@@ -3,7 +3,7 @@
 ;##        [ Asm7x.List ][ QSortS1.inc ]         ##
 ;##                                              ##
 ;##               -= Quick Sort =-               ##
-;##           (single element arrays)            ##
+;##         (for single element arrays)          ##
 ;##                                              ##
 ;##              Быстрая сортировка              ##
 ;##    (для массивов с одиночными элементами)    ##

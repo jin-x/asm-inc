@@ -3,7 +3,7 @@
 ;##        [ Asm7x.List ][ ISortS1.inc ]         ##
 ;##                                              ##
 ;##             -= Insertion Sort =-             ##
-;##           (single element arrays)            ##
+;##         (for single element arrays)          ##
 ;##                                              ##
 ;##             Сортировка вставками             ##
 ;##    (для массивов с одиночными элементами)    ##

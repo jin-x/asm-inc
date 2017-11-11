@@ -3,7 +3,7 @@
 ;##        [ Asm7x.List ][ IQSortS1.inc ]        ##
 ;##                                              ##
 ;##            -= Smart Quick Sort =-            ##
-;##           (single element arrays)            ##
+;##         (for single element arrays)          ##
 ;##                                              ##
 ;##           Умная быстрая сортировка           ##
 ;##    (для массивов с одиночными элементами)    ##

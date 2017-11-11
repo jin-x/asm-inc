@@ -3,7 +3,7 @@
 ;##        [ Asm7x.List ][ QSortS2.inc ]         ##
 ;##                                              ##
 ;##               -= Quick Sort =-               ##
-;##           (double element arrays)            ##
+;##         (for double element arrays)          ##
 ;##                                              ##
 ;##              Быстрая сортировка              ##
 ;##     (для массивов с двойными элементами)     ##

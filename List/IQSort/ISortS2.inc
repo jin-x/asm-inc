@@ -3,7 +3,7 @@
 ;##        [ Asm7x.List ][ ISortS2.inc ]         ##
 ;##                                              ##
 ;##             -= Insertion Sort =-             ##
-;##           (double element arrays)            ##
+;##         (for double element arrays)          ##
 ;##                                              ##
 ;##             Сортировка вставками             ##
 ;##     (для массивов с двойными элементами)     ##
