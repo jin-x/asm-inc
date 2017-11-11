@@ -48,15 +48,15 @@ _defdef	SortAscending, 1
 
 IF	_SortSignCmp
   IF	_SortAscending
-    srt?jle	equ	<jle>
+    srt?jle	EQU	<jle>
   ELSE
-    srt?jle	equ	<jge>
+    srt?jle	EQU	<jge>
   ENDIF
 ELSE
   IF	_SortAscending
-    srt?jle	equ	<jbe>
+    srt?jle	EQU	<jbe>
   ELSE
-    srt?jle	equ	<jae>
+    srt?jle	EQU	<jae>
   ENDIF
 ENDIF
 
@@ -71,11 +71,11 @@ ENDIF
 _SortElemSize	=	_SortElemWords*2	; размер одного элемента массива (2 или 4 байта)
 
 IF	_SortElemWords gt 1 and @386
-  srt?ax	equ	<eax>
-  srt?bx	equ	<ebx>
+  srt?ax	EQU	<eax>
+  srt?bx	EQU	<ebx>
 ELSE
-  srt?ax	equ	<ax>
-  srt?bx	equ	<bx>
+  srt?ax	EQU	<ax>
+  srt?bx	EQU	<bx>
 ENDIF
 
 IF	_SortElemWords gt 1 and @386

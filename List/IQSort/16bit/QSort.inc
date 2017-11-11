@@ -1,6 +1,6 @@
 ;##################################################
 ;##                                              ##
-;##        [ Asm7x.List ][ QSort.inc ]           ##
+;##         [ Asm7x.List ][ QSort.inc ]          ##
 ;##                                              ##
 ;##          UNIVERSAL UNIT FOR 16 BIT           ##
 ;##       ìçàÇÖêëÄãúçõâ åéÑìãú Ñãü 16 Åàí        ##
@@ -48,19 +48,19 @@ _defdef	SortAscending, 1
 
 IF	_SortSignCmp
   IF	_SortAscending
-    srt?jl	equ	<jl>
-    srt?jg	equ	<jg>
+    srt?jl	EQU	<jl>
+    srt?jg	EQU	<jg>
   ELSE
-    srt?jl	equ	<jg>
-    srt?jg	equ	<jl>
+    srt?jl	EQU	<jg>
+    srt?jg	EQU	<jl>
   ENDIF
 ELSE
   IF	_SortAscending
-    srt?jl	equ	<jb>
-    srt?jg	equ	<ja>
+    srt?jl	EQU	<jb>
+    srt?jg	EQU	<ja>
   ELSE
-    srt?jl	equ	<ja>
-    srt?jg	equ	<jb>
+    srt?jl	EQU	<ja>
+    srt?jg	EQU	<jb>
   ENDIF
 ENDIF
 

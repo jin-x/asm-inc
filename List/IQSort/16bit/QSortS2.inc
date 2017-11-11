@@ -46,7 +46,7 @@ QSortDE		PROC
 
 		; Главная процедура быстрой сортировки
 		; DX = адрес первого элемента, CX = адрес последнего элемента, CX > DX, BP = уровень рекурсии
-	@@QSortMain:
+	@@QSortDEMain:
 		mov	si,dx			;; I (SI) := L (DX)
 	@@repeat1:				;; repeat
 		mov	di,cx			;; J (DI) := R (CX)
@@ -92,7 +92,7 @@ QSortDE		PROC
 		mov	cx,di
 		; DX = L, CX = J
 		inc	bp			; увеличиваем глубину рекурсии и идём на рекурсию
-		jmp	@@QSortMain		;;   QSort(L, J); вызов делаем через jmp для экономии стека :)
+		jmp	@@QSortDEMain		;;   QSortDE(L, J); вызов делаем через jmp для экономии стека :)
 	@@recursret:
 		pop	si
 		pop	cx			; восстанавливаем I и R

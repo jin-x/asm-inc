@@ -31,7 +31,7 @@ IQSortS2_ver	=	100h			; версия данного модуля (word: старший байт - целая часть,
 ;   и уменьшает глубину рекурсии, защищая стек от переполнения
 IQSortInsThrs	=	16
 
-; IQSortMaxStk = максимальный размер стека в байтах, который допустимо использовать процедуре IQSort (включая call из основного кода) [минимум 12; по умолчанию 128]
+; IQSortMaxStk = максимальный размер стека в байтах, который допустимо использовать процедуре IQSortDE (включая call из основного кода) [минимум 12; по умолчанию 128]
 ;   Каждый уровень вложенности использует 4 байта (2 слова) стека (первый уровень - до 4-х слов, последний может использовать на 2 слова больше, итого минимум 12 байт),
 ;   т.о. 128 байт позволяют организовать до 30 уровней рекурсии, что достаточно даже для очень больших массивов
 IQSortMaxStk	=	128
@@ -60,7 +60,7 @@ IQSortDE	PROC
 
 		; Главная процедура быстрой сортировки
 		; DX = адрес первого элемента, CX = адрес последнего элемента, CX > DX, BP = уровень рекурсии
-	@@IQSortMain:
+	@@IQSortDEMain:
 		mov	ax,cx
 		sub	ax,dx
 		shr	ax,2			; AX = кол-во элементов минус 1
@@ -111,10 +111,10 @@ IQSortDE	PROC
 		push	si			; сохраняем R и I
 		mov	cx,di
 		; DX = L, CX = J
-		cmp	bp,(IQSortMaxStk-12)/4	; 6 слов - это адрес возврата в вызываемую программу + bp + cx + si + адрес возврата из InsSort + bp
-		jae	@@callins2		; если число рекурсий достигло максимума, идём на вызов сортировки вставками: InsSort(L, J)
+		cmp	bp,(IQSortMaxStk-12)/4	; 6 слов - это адрес возврата в вызываемую программу + bp + cx + si + адрес возврата из InsSortDE + bp
+		jae	@@callins2		; если число рекурсий достигло максимума, идём на вызов сортировки вставками: InsSortDE(L, J)
 		inc	bp			; иначе увеличиваем глубину рекурсии и идём на рекурсию
-		jmp	@@IQSortMain		;;   IQSort(L, J); вызов делаем через jmp для экономии стека :)
+		jmp	@@IQSortDEMain		;;   IQSortDE(L, J); вызов делаем через jmp для экономии стека :)
 	@@recursret:
 		pop	si
 		pop	cx			; восстанавливаем I и R
@@ -130,10 +130,10 @@ IQSortDE	PROC
 
 	@@callins:
 		push	offset @@finish		; адрес возврата
-		jmp	@IQInsSort		; вместо call + jmp @@finish делаем push + jmp
+		jmp	@IQInsSortDE		; вместо call + jmp @@finish делаем push + jmp
 	@@callins2:
 		push	offset @@recursret	; адрес возврата
-		jmp	@IQInsSort		; вместо call + jmp @@recursret делаем push + jmp
+		jmp	@IQInsSortDE		; вместо call + jmp @@recursret делаем push + jmp
 IQSortDE	ENDP
 
 ;-- InsSortDE: СОРТИРОВКА массива ВСТАВКАМИ ----------------------------------------------------------------------------
@@ -154,9 +154,9 @@ InsSortDE	PROC
 		; Главная процедура сортировки вставками
 		; DX = адрес первого элемента, CX = адрес последнего элемента, CX > DX
 IFDEF		??Version	; TASM
-  @IQInsSort:
+  @IQInsSortDE:
 ELSE				; MASM
-  @IQInsSort::
+  @IQInsSortDE::
 ENDIF
 		push	bp
 		mov	di,dx			; J (DI) := L - адрес первого элемента

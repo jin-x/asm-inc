@@ -67,19 +67,19 @@ _defdef	SortAscending, 1
 
 IF	_SortSignCmp
   IF	_SortAscending
-    srt?jl	equ	<jl>
-    srt?jg	equ	<jg>
+    srt?jl	EQU	<jl>
+    srt?jg	EQU	<jg>
   ELSE
-    srt?jl	equ	<jg>
-    srt?jg	equ	<jl>
+    srt?jl	EQU	<jg>
+    srt?jg	EQU	<jl>
   ENDIF
 ELSE
   IF	_SortAscending
-    srt?jl	equ	<jb>
-    srt?jg	equ	<ja>
+    srt?jl	EQU	<jb>
+    srt?jg	EQU	<ja>
   ELSE
-    srt?jl	equ	<ja>
-    srt?jg	equ	<jb>
+    srt?jl	EQU	<ja>
+    srt?jg	EQU	<jb>
   ENDIF
 ENDIF
 
@@ -97,19 +97,19 @@ _defdef	IQSortInsThrs, 16
 _defdef	IQSortMaxStk, 128
 
 IF	_IQSortInsThrs and _IQSortInsThrs lt 2
-  _IQSortInsThrs = 0				; если IQSortInsThrs < 2, принимаем значение 0
+  _IQSortInsThrs =	0			; если IQSortInsThrs < 2, принимаем значение 0
 ENDIF
 
 IF	_IQSortMaxStk and _IQSortMaxStk lt 10-(_SortElemWords gt 1 and not @386)*2
-  _IQSortMaxStk = 0				; если IQSortMaxStk < 10 + 2 (если SortElemWords = 2 или инструкции 386 отключены), принимаем значение 0
+  _IQSortMaxStk	=	0			; если IQSortMaxStk < 10 + 2 (если SortElemWords = 2 или инструкции 386 отключены), принимаем значение 0
 ENDIF
 
 IF	_SortElemWords gt 1 and @386
-  srt?ax	equ	<eax>
-  srt?bx	equ	<ebx>
+  srt?ax	EQU	<eax>
+  srt?bx	EQU	<ebx>
 ELSE
-  srt?ax	equ	<ax>
-  srt?bx	equ	<bx>
+  srt?ax	EQU	<ax>
+  srt?bx	EQU	<bx>
 ENDIF
 
 IF	_SortElemWords gt 1 and @386

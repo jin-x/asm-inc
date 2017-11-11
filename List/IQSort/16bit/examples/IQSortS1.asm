@@ -139,7 +139,7 @@ NewLine		PROC
 NewLine		ENDP
 
 ; Инициализация массивов (ES:DI - буфер для массива, CX - кол-во элементов)
-; Меняет регистры AX, BX, CX, DX, SI, DI
+; Меняет регистры AX, CX, DX, DI
 InitArray	PROC
 IF	RANDOMIZE
 		push	cx
@@ -194,7 +194,7 @@ ShowArray	ENDP
 ENDIF
 
 ; Вывод целого знакового десятичного числа AX на экран
-; Меняет регистры AX, BX, CX, DX, DI
+; Меняет регистры AX, BX, CX, DX
 ShowSInt	PROC
 		test	ax,ax			; проверяем число
 		jns	@@nosign		; переходим, если число положительное
@@ -208,7 +208,7 @@ ShowSInt	PROC
 		xor	cx,cx			; кол-во цифр (пока 0)
 		mov	bx,10			; система счисления (десятичная)
 	@@next:
-		xor	dx,dx			; DS = 0 (нужно для деления)
+		xor	dx,dx			; DX = 0 (нужно для деления)
 		div	bx			; AX = DX:AX/систему_счисления (10), DX = остаток
 		push	dx			; сохраняем цифру в стеке
 		inc	cx			; увеличиваем кол-во цифр
