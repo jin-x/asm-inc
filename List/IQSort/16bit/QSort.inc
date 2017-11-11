@@ -34,7 +34,7 @@ QSort_ver	=	100h			; версия данного модуля (word: старший байт - целая часть, мл
 ;-----------------------------------------------------------------------------------------------------------------------
 
 _defdef		MACRO	Const:REQ, DefVal:REQ
-  IFDEF		const
+  IFDEF		Const
 	_&Const	=	Const
   ELSE
 	_&Const	=	DefVal
